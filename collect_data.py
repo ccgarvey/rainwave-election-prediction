@@ -63,16 +63,17 @@ def main():
                      'songs' : [] }
     
     '''
-    Get info for each song: title, cooldown group, album, average rating,
+    Get info for each song: title, ID, cooldown group, album, average rating,
     average rating for its album, was it a request or not, requester's name,
-    origin SID (if applicable), length, did it play, did it tie with winner?,
-    artists
-    All 'string-like' things should be string + IDs when possible/reasonable.
+    origin SID, length, did it play, did it tie with winner?, artists
     '''
     # get information that can be fetched from a single song
-    for song in current['songs']:
-        election_out['songs'].append(processSong(song))
-    # TODO: did it tie with the winner + did it play?
+    has_tie, n_tied = checkTied(current)
+    for i in range(len(current['songs'])):
+        processed_song = processSong(current['songs'][i])
+        processed_song['tied_winner'] = (i < n_tied)
+        processed_song['was_played'] = (i == 0)
+        election_out['songs'].append(processed_song)
     
     print(json.dumps(election_out, indent=4, sort_keys=True))
 
@@ -235,5 +236,63 @@ def requestInfo(song):
         return False, None
     else:
         return True, name
+
+def processSong(song):
+    '''
+    Processes a song, extracting information about it into a dictionary.
+    
+    Does not include information that requires knowledge about other songs, such
+    as whether or not it tied with the winner, or was the song played. 
+    
+    param: song,  a song object (in standard rainwave format)
+    return: a dictionary of information about the song
+    '''
+    was_requested, requester = requestInfo(song)
+    song_info = { 'id' : song['id'],
+                  'title' : song['title'],
+                  'artists' : pullArtists(song),
+                  # rainwave used to allow for more than one album.
+                  'album_name' : song['albums'][0]['name'],
+                  'album_id' : song['albums'][0]['id'],
+                  'album_average_rating' : song['albums'][0]['rating'],
+                  'groups' : pullGroups(song),
+                  'votes' : song['entry_votes'],
+                  'requested' : was_requested,
+                  'requester' : requester,
+                  'origin_station' : song['origin_sid'],
+                  'average_rating' : song['rating'],
+                  'length' : song['length'] }
+    
+    return song_info
+    
+def pullGroups(song):
+    '''
+    Gets information about the groups a song belongs to.
+    
+    param: song,  the song (in standard rainwave format) to get group info from
+    return: an array of dictionaries containing information about the groups.
+    '''
+    groups = []
+    for id_object in song['groups']:
+        group_dict = { 'name' : id_object['name'],
+                       'id' : id_object['id'] }
+        groups.append(group_dict)
+        
+    return groups
+
+def pullArtists(song):
+    '''
+    Gets information about the artists who contributed to a song.
+    
+    param: song,  the song (in standard rainwave format) to get artist info from
+    return: an array of dictionaries containing information about the artists.
+    '''
+    artists = []
+    for id_object in song['artists']:
+        artist_dict = { 'name' : id_object['name'],
+                        'id' : id_object['id'] }
+        artists.append(artist_dict)
+        
+    return artists
 
 main()
