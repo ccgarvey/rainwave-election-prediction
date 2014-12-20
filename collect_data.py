@@ -4,6 +4,10 @@ import sys #command-line arguments
 import json #to make rainwave data useable
 import time #converting epoch time to dates
 
+
+""" ****************************************************************************
+                            DATA COLLECTION AND WRITING
+**************************************************************************** """
 def main():
     # Check, then parse command line arguments.
     if len(sys.argv) < 3:
@@ -38,7 +42,9 @@ def main():
         return
         #contine #in the future, we will want to just skip this iteration
     '''
-    epoch_time = current['start']
+    epoch_time = current['start_actual'] 
+    # Note: this is when it the election results played. NOT 'start' nor 'end'
+    
     n_songs = len(current['songs'])
     prev_votes = tallyVotes(previous[0])
     
@@ -53,7 +59,7 @@ def main():
     *without a request in the tie(??)
     '''
     election_out = { 'station' : sid,
-                     'time' : epoch_time, #subject to change!
+                     'time' : parseTime(epoch_time),
                      'number_songs' : n_songs,
                      'prev_elec_votes' : prev_votes,
                      'prev_5_elec_vote_avg' : voter_avg,
@@ -77,6 +83,10 @@ def main():
     
     print(json.dumps(election_out, indent=4, sort_keys=True))
 
+
+""" ****************************************************************************
+                            HTTP REQUEST METHODS
+**************************************************************************** """
 def getInfo(my_id, my_key, station):
     """
     Perform a GET call to /api/info.
@@ -142,6 +152,11 @@ def postListeners(my_id, my_key, station):
     #Perform sync
     listeners_url = 'http://rainwave.cc/api4/current_listeners'
     return urlrequest.urlopen(listeners_url, data)
+
+
+""" ****************************************************************************
+                            DATA PROCESSING METHODS
+**************************************************************************** """
 
 def tallyVotes(election):
     '''
@@ -264,7 +279,7 @@ def processSong(song):
                   'length' : song['length'] }
     
     return song_info
-    
+
 def pullGroups(song):
     '''
     Gets information about the groups a song belongs to.
@@ -294,5 +309,26 @@ def pullArtists(song):
         artists.append(artist_dict)
         
     return artists
+
+def parseTime(epoch_time):
+    '''
+    Turns the epoch time into a dictionary of information.
+    
+    Format (order may vary):
+    {
+        'day' : value 0-6 (Sunday - Sat)
+        'half_hour_block' : value 0-47 (0:00 - 23:30)
+    }
+    
+    param: epoch_time, the time in seconds from epoch
+    return:            low-res infomation about the time, as described above
+    '''
+    time_split = time.localtime(epoch_time)
+    day = (time_split.tm_wday + 1)%7 #Sunday as the first day of the week
+    half_hour = time_split.tm_hour*2 + (0 if time_split.tm_min < 29 else 1)
+    
+    parsed_time = { 'day' : day,
+                    'half_hour_block' : half_hour }
+    return parsed_time
 
 main()
