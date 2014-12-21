@@ -154,8 +154,8 @@ def main():
     data_file.write('\n]')
     
     # Close the files for the day
-    close(data_file)
-    close(log_file)
+    data_file.close()
+    log_file.close()
 
 """ ****************************************************************************
                             HTTP REQUEST METHODS
