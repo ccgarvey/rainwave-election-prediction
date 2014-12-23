@@ -52,11 +52,12 @@ def main():
             
             current_month = time_of_day.tm_mon
             current_year = time_of_day.tm_year
+            current_mday = time_of_day.tm_mday
             
             # Files: data, and error logging
-            log_file_name = (str(current_month) + '_' + str(current_day) + '_'
+            log_file_name = (str(current_month) + '_' + str(current_mday) + '_'
                              + str(current_year) + '.log')
-            data_file_name = (str(current_month) + '_' + str(current_day) + '_'
+            data_file_name = (str(current_month) + '_' + str(current_mday) + '_'
                               + str(current_year) + '.data')
             log_file = open(log_file_name, 'a')
             data_file = open(data_file_name, 'a')
