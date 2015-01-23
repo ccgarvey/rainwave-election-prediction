@@ -11,29 +11,37 @@ import time #converting epoch time to dates
 **************************************************************************** """
 def main():
     # Check, then parse command line arguments.
-    if len(sys.argv) < 3:
-        print('Usage: python collect_data <user_id> <key>')
+    if len(sys.argv) != 4:
+        print('Usage: python collect_data <user_id> <key> <station>')
         return
     
     my_id = int(sys.argv[1])
     my_key = sys.argv[2]
+    station = sys.argv[3]
     
     # General constant values
     sid_dict = { 'OCR' : 2 , 'ALL' : 5 }
-    sid = sid_dict['OCR']
+    station_dict = dict(reversed(i) for i in sid_dict.items())
+    
+    # Station selection
+    if station in sid_dict:
+        sid = sid_dict[station]
+    else:
+        sid = int(station)
     
     # Time keeping
     time_of_day = time.localtime()
-    start_day = time_of_day.tm_wday
-    start_month = time_of_day.tm_mon
-    start_year = time_of_day.tm_year
+    current_day = time_of_day.tm_wday
+    #start_day = time_of_day.tm_wday
+    #start_month = time_of_day.tm_mon
+    #start_year = time_of_day.tm_year
     first_run = True
     collected = 0
     
-    current_day = start_day
+    #current_day = start_day
     now_day = current_day
     
-    while now_day < start_day + 2:
+    while True:
         time_of_day = time.localtime()
         now_day = time_of_day.tm_wday
         
@@ -55,10 +63,10 @@ def main():
             current_mday = time_of_day.tm_mday
             
             # Files: data, and error logging
-            log_file_name = (str(current_month) + '_' + str(current_mday) + '_'
-                             + str(current_year) + '.log')
-            data_file_name = (str(current_month) + '_' + str(current_mday) + '_'
-                              + str(current_year) + '.data')
+            out_file_name = (station_dict[sid] + '_' + str(current_month) + '_'
+                             + str(current_mday) + '_' + str(current_year))
+            log_file_name = (out_file_name + '.log')
+            data_file_name = (out_file_name + '.data')
             log_file = open(log_file_name, 'a')
             data_file = open(data_file_name, 'a')
     
@@ -74,83 +82,72 @@ def main():
             # Retrieve station information (involves HTTP request)
             response = postSync(my_id, my_key, sid)
             
+            print('Response received')
+            
+            data = json.loads(response.read().decode('utf-8'))
+
+            # Pull out important bits
+            current = data['sched_current']
+            previous = data['sched_history']
+            
+            epoch_time = current['start_actual'] 
+            # This is when it the election results played, NOT 'start' nor 'end'
+            
+            n_songs = len(current['songs'])
+            prev_votes = tallyVotes(previous[0])
+            
+            voter_avg = averageVotes(previous)
+            prev_winner_rating = previous[0]['songs'][0]['rating']
+            is_random = checkRandom(current)
+            
+            '''
+            Get info about station, time, listeners, previous election's number
+            of voters, number of songs in the election, voter average over past
+            5 songs, previous election winner's average rating, and if election
+            was a tie.
+            '''
+            election_out = { 'station' : sid,
+                            'time' : parseTime(epoch_time),
+                            'number_songs' : n_songs,
+                            'prev_elec_votes' : prev_votes,
+                            'prev_5_elec_vote_avg' : voter_avg,
+                            'prev_winner_rating' : prev_winner_rating,
+                            'chosen_randomly' : is_random,
+                            'listeners' : listeners,
+                            'songs' : [] }
+            
+            '''
+            Get info for each song: title, ID, cooldown group, album, average
+            rating, average rating for its album, was it a request or not, 
+            requester's name, origin SID, length, did it play, did it tie with
+            winner?, artists
+            '''
+            # get information that can be fetched from a single song
+            has_tie, n_tied = checkTied(current)
+            for i in range(len(current['songs'])):
+                processed_song = processSong(current['songs'][i])
+                processed_song['tied_winner'] = (i < n_tied)
+                processed_song['was_played'] = (i == 0)
+                election_out['songs'].append(processed_song)
+            
+            if collected > 0:
+                data_file.write(',')
+            data_file.write('\n')
+            data_file.write(json.dumps(election_out, indent=4, sort_keys=True))
+            collected += 1
+            
+            print('Collected a song in the log.')
+        
         # If either fails, log the error, and wait for 60 seconds.
         except urllib.error.URLError as error:
-            error_time = time.localtime()
-            error_minute = error_time.tm_min
-            error_hour = error_time.tm_hour
-            if error_minute < 10:
-                error_min_str = '0' + str(error_minute)
-            else:
-                error_min_str = str(error_minute)
-            
-            log_file.write('Error at ' + str(error_hour) + ':'
-                            + error_min_str + ': ' + error.reason + '\n')
-            time.sleep(60)
+            logExceptionAndWait(log_file, error.reason, 60)
             continue
-            
-            
-        data = json.loads(response.read().decode('utf-8'))
-
-        # Pull out important bits
-        current = data['sched_current']
-        previous = data['sched_history']
         
-        '''
-        this does not work; voting is never allowed on current.
-        Maybe check with a while loop?
-        # It's useless to take stats when voting's not allowed.
-        if not current['voting_allowed']:
-            print('No voting.')
-            return
-            #contine #in the future, we will want to skip this iteration
-        '''
-        epoch_time = current['start_actual'] 
-        # This is when it the election results played, NOT 'start' nor 'end'
-        
-        n_songs = len(current['songs'])
-        prev_votes = tallyVotes(previous[0])
-        
-        voter_avg = averageVotes(previous)
-        prev_winner_rating = previous[0]['songs'][0]['rating']
-        is_random = checkRandom(current)
-        
-        '''
-        Get info about station, time, listeners, previous election's number of
-        voters, number of songs in the election, voter average over past 5
-        songs, previous election winner's average rating, and if election was a
-        tie.
-        '''
-        election_out = { 'station' : sid,
-                        'time' : parseTime(epoch_time),
-                        'number_songs' : n_songs,
-                        'prev_elec_votes' : prev_votes,
-                        'prev_5_elec_vote_avg' : voter_avg,
-                        'prev_winner_rating' : prev_winner_rating,
-                        'chosen_randomly' : is_random,
-                        'listeners' : listeners,
-                        'songs' : [] }
-        
-        '''
-        Get info for each song: title, ID, cooldown group, album, average
-        rating, average rating for its album, was it a request or not, 
-        requester's name, origin SID, length, did it play, did it tie with
-        winner?, artists
-        '''
-        # get information that can be fetched from a single song
-        has_tie, n_tied = checkTied(current)
-        for i in range(len(current['songs'])):
-            processed_song = processSong(current['songs'][i])
-            processed_song['tied_winner'] = (i < n_tied)
-            processed_song['was_played'] = (i == 0)
-            election_out['songs'].append(processed_song)
-        
-        if collected > 0:
-            data_file.write(',')
-        data_file.write('\n')
-        data_file.write(json.dumps(election_out, indent=4, sort_keys=True))
-        collected += 1
-        
+        except Exception as error:
+            print(data)
+            logExceptionAndWait(log_file, str(error))
+            continue
+    
     # End the array in the data file
     data_file.write('\n]')
     
@@ -227,6 +224,27 @@ def postListeners(my_id, my_key, station):
     listeners_url = 'http://rainwave.cc/api4/current_listeners'
     return urlrequest.urlopen(listeners_url, data)
 
+def logExceptionAndWait(log_file, error_message, wait_time=5):
+    '''
+    Logs an exception error mesage and waits to return.
+    
+    param: log_file,      the file at which to log an error message
+    param: error_message, the message to log for this error
+    param: wait_time,     the time to wait (in seconds) before returning
+    '''
+    error_time = time.localtime()
+    error_minute = error_time.tm_min
+    error_hour = error_time.tm_hour
+    if error_minute < 10:
+        error_min_str = '0' + str(error_minute)
+    else:
+        error_min_str = str(error_minute)
+    
+    log_file.write('Error at ' + str(error_hour) + ':' + error_min_str
+                   + ': ' + error_message + '\n')
+    log_file.flush()
+    
+    time.sleep(wait_time)
 
 """ ****************************************************************************
                             DATA PROCESSING METHODS
