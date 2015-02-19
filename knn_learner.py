@@ -21,29 +21,40 @@ def main():
     
     # Split training and testing data.
     if not has_test_data:
-        all_data = numpy.loadtxt(train_file)
+        all_data = numpy.loadtxt(train_file, delimiter=', ')
         rows, columns = all_data.shape
-        train_data = numpy.empty([0, columns])
-        test_data = numpy.empty([0, columns])
-        test_data_labels = numpy.empty([0, 1])
-        train_data_labels = numpy.empty([0, 1])
+        train_data = numpy.zeros([0, columns])
+        train_data_labels = numpy.zeros([0, 1])
+        train_rows = 0
+        test_data = numpy.zeros([0, columns])
+        test_data_labels = numpy.zeros([0, 1])
+        test_rows = 0
+        
         for i in range(rows):
             if random.random() > 0.7:
-                test_data.append(all_data[i,0:(columns-2)], axis=0)
-                test_data_labels.append(all_data[i,columns-1], axis=0)
+                test_data = numpy.append(test_data, all_data[i,:(columns-1)])
+                test_data_labels = numpy.append(test_data_labels,
+                                                all_data[i,columns-1])
+                test_rows += 1
             else:
-                train_data.append(all_data[i,0:(columns-2)], axis=0)
-                train_data_labels.append(all_data[i,columns-1], axis=0)
+                train_data = numpy.append(train_data, all_data[i,0:(columns-1)])
+                train_data_labels = numpy.append(train_data_labels,
+                                                 all_data[i,columns-1])
+                train_rows += 1
+        
+        test_data = test_data.reshape((test_rows, columns-1))
+        train_data = train_data.reshape((train_rows, columns-1))
+        
     else:
         train_data = numpy.loadtxt(train_file)
         rows, columns = train_data.shape
         train_data_labels = train_data[:,columns-1]
-        train_data = train_data[:,0:(columns-2)
+        train_data = train_data[:,0:(columns-2)]
         test_file = open(sys.argv[2], 'r')
         test_data = numpy.loadtxt(test_file)
         rows, columns = test_data.shape
         test_data_labels = test_data[:,columns-1]
-        test_data = test_data[:,0:(columns-2)
+        test_data = test_data[:,0:(columns-2)]
         
     k_neighbors = [1, 5, 15]
 
