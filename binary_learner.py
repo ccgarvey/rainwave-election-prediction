@@ -100,7 +100,7 @@ def count_differences(vec1, vec2):
     diff_vec = vec1 - vec2
     return numpy.linalg.norm(numpy.absolute(diff_vec), 1)
 
-def check_dataset(classifier_name, classifier, data_name, data, labels):
+def print_check_dataset(classifier_name, classifier, data_name, data, labels):
     predict = classifier.predict(data)
     num_total_points = len(predict)
     num_wrong = count_differences(predict, labels)
@@ -117,8 +117,36 @@ def check_classifier(classifier_name, classifier, datasets):
     
     check_dataset(classifier_name, classifier, "testing",
                   test_data, test_labels)
+
+def predict_percent(classifier, test_data, test_labels):
+    predict = classifier.predict(test_data)
+    num_total_points = len(predict)
+    num_wrong = count_differences(predict, test_labels)
+    percent_right = 100*(num_total_points - num_wrong)/num_total_points
     
-def subset_select(which_learner, datasets):
+    return (num_total_points, num_wrong, percent_right)
+    
+def get_absolute_index(index, indices_removed, total_indices):
+    """
+    Determines the absolute index of a given index in a subset of an original
+    array which has had certain indices removed.
+    
+    Ex. in the array [0, 1, 2, 3, 4, 5, 6]
+    if we remove indices 3 and 5, we get the new subarray [0, 1, 2, 4, 6].
+    Index 3 in this has value 4, and index 4 in the original array. We
+    want to know that absolute index 4, given index 3, indices_removed [3, 5],
+    and total_indices 7.
+    """
+    absolute_index = index
+    for removed in indices_removed.sort():
+        if removed <= absolute_index:
+            absolute_index += 1
+    
+    return absolute_index
+    
+def backward_eliminate(which_learner, datasets):
+    print("Backward elimination is a TODO.")
+    return
     # Split dataset into components
     (train_data, train_labels, test_data, test_labels) = datasets
     
@@ -130,15 +158,54 @@ def subset_select(which_learner, datasets):
     else:
         return
     
+    max_num_features = train_data.shape[1]
+    
+    # General info for iterating
+    predict_info = predict_percent(classifier, test_data, test_labels)
+    (num_total_points, num_wrong, best_percent_right) = predict_info
+    indices_removed = []
+    final_data = test_data
+    
+    # Iterate until there is one feature left
+    for i in range(max_num_features):
+        
+        best_percent_tmp = 0
+        feature_removed_tmp = -1
+        for j in range(max_num_features - i):
+            #Remove a feature from the remaining features
+            #print('TODO! Backwards greedy elimination.')
+            #break
+            #TODO: I need to be updating the training data as I go.
+            
+            #Remove a feature and test it
+            tmp_data = numpy.delete(final_data, j, 1)
+            predict_info = predict_percent(classifier, tmp_data, test_labels)
+            percent_tmp = predict_info[2]
+            
+            #If this is an improvement, keep track of it
+            if(percent_tmp > best_percent_tmp):
+                feature_removed_tmp = get_absolute_index(j, indices_removed,
+                                                        max_num_features)
+                best_percent_tmp = percent_tmp
+                best_data_tmp = tmp_data
+            
+        
+        # If not improved, stop 
+        if best_percent_tmp < best_percent_right:
+            break
+        
+        # Otherwise, keep track and keep going
+        indices_removed.append(feature_removed_tmp)
+        final_data = best_data_tmp
+    
+    
     #feature_selector = feature_selection.RFECV(classifier)
     #feature_selector.fit(train_data, train_labels)
     #print(feature_selector.get_support())
     
     #check_classifier(which_learner + " with selection", feature_selector,
     #                 datasets)
-    
-    
-    
+
 def main():
     if len(sys.argv) != 2 and len(sys.argv) != 3:
         print('Usage: python binary_learner <train_data> [test_data]')
@@ -156,7 +223,7 @@ def main():
     #linear_classifier = linear_learner(train_data, train_labels)
     #check_classifier("Linear", linear_classifier, datasets)
     
-    subset_select("Linear", datasets)
+    backward_eliminate("Linear", datasets)
     
     
 
