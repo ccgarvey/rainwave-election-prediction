@@ -5,6 +5,7 @@ Performs binary learning using K-nearest neighbors or linear regression.
 import sys #for command-line arguments
 from sklearn import linear_model # linear regression learning
 from sklearn import neighbors # k-nearest neighbors
+from sklearn import feature_selection # Recursive feature elimination
 import numpy # processing
 import random # for splitting data in training/test
 
@@ -117,6 +118,25 @@ def check_classifier(classifier_name, classifier, datasets):
     check_dataset(classifier_name, classifier, "testing",
                   test_data, test_labels)
     
+def subset_select(which_learner, datasets):
+    # Split dataset into components
+    (train_data, train_labels, test_data, test_labels) = datasets
+    
+    # Create classifier based on which learner was used
+    if(which_learner == "KNN"):
+        classifier = knn_learner(train_data, train_labels, [5])[0]
+    elif(which_learner == "Linear"):
+        classifier = linear_learner(train_data, train_labels)
+    else:
+        return
+    
+    #feature_selector = feature_selection.RFECV(classifier)
+    #feature_selector.fit(train_data, train_labels)
+    #print(feature_selector.get_support())
+    
+    #check_classifier(which_learner + " with selection", feature_selector,
+    #                 datasets)
+    
     
     
 def main():
@@ -133,8 +153,10 @@ def main():
     # knn_classifier = knn_learner(train_data, train_labels, [5])
     #check_classifier("KNN", knn_classifier[0], datasets)
     
-    linear_classifier = linear_learner(train_data, train_labels)
-    check_classifier("Linear", linear_classifier, datasets)
+    #linear_classifier = linear_learner(train_data, train_labels)
+    #check_classifier("Linear", linear_classifier, datasets)
+    
+    subset_select("Linear", datasets)
     
     
 
