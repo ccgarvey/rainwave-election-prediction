@@ -18,6 +18,52 @@ def write_value(out_file, value, isLast=False):
     """
     
     out_file.write(str(value) + ('\n' if isLast else ', '))
+  
+def restricted_parsing():
+    """
+    Only outputs the max song rating difference and request or not.
+    Max song rating difference = difference of this song to the max for the
+    election.
+    """
+    if len(sys.argv) != 3:
+        print('Usage: python parse_data_restricted <file_to_parse> '
+              + '<output_file>')
+        return
+    
+    json_filename = sys.argv[1]
+    out_filename = sys.argv[2]
+    
+    # Load the file to be parsed
+    json_data_file = open(json_filename, 'r')
+    json_data = json.loads(json_data_file.read())
+    
+    # Open the output file, with appending enabled.
+    outfile_new = not os.path.exists(out_filename)
+    output_file = open(out_filename, 'a')
+    
+    # Write the first line of the output file if it's new
+    if outfile_new:
+        output_file.write('song_rating_diff, requested, winner\n')
+    
+    
+    for election in json_data:
+        # If the winner was chosen randomly, skip the election.
+        # NOTE: this is a dicey choice and may not make sense. Kills ~half.
+        if election['chosen_randomly']:
+            continue
+        
+        max_song_rating = max(song['average_rating'] for
+                              song in election['songs'])
+        
+        # Write out song info as specified above.
+        for song in election['songs']:
+            write_value(output_file, max_song_rating - song['average_rating'])
+            write_value(output_file, '1' if song['requested'] else '0')
+            write_value(output_file, '1' if song['was_played'] else '0', True)
+    
+    # Close the input and output files.
+    output_file.close()
+    json_data_file.close()
     
 def main():
     # Check and parse command line arguments
@@ -70,4 +116,4 @@ def main():
     output_file.close()
     json_data_file.close()
 
-main()
+restricted_parsing()

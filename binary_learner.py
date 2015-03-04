@@ -80,14 +80,27 @@ def linear_learner(train_data, train_labels):
     
     return linear
     
-def knn_learner(train_data, train_labels, k_vals):
+def knn_regress_learner(train_data, train_labels, k_vals, datasets):
     """
     Performs K-nearest neighbors on the test data.
     """
     kneighbors_classifiers = []
 
     for num_neighbors in k_vals:
-        kneighbors = neighbors.KNeighborsClassifier(num_neighbors)
+        kneighbors = neighbors.KNeighborsRegressor(n_neighbors=num_neighbors)
+        kneighbors.fit(train_data, train_labels)
+        kneighbors_classifiers.append(kneighbors)
+    
+    return kneighbors_classifiers
+
+def knn_learner(train_data, train_labels, k_vals, datasets):
+    """
+    Performs K-nearest neighbors regression on the test data.
+    """
+    kneighbors_classifiers = []
+
+    for num_neighbors in k_vals:
+        kneighbors = neighbors.KNeighborsClassifier(n_neighbors=num_neighbors)
         kneighbors.fit(train_data, train_labels)
         kneighbors_classifiers.append(kneighbors)
     
@@ -108,7 +121,7 @@ def check_dataset(classifier_name, classifier, data_name, data, labels):
           + str(num_wrong) + " points were predicted wrong of "
           + str(num_total_points) + ".")
     percent_right = 100*(num_total_points - num_wrong)/num_total_points
-    print("This is an accuracy of " + str(percent_right) + "%")
+    print(classifier_name + " This is an accuracy of " + str(percent_right) + "%")
 
 def check_classifier(classifier_name, classifier, datasets):
     (train_data, train_labels, test_data, test_labels) = datasets
@@ -119,6 +132,9 @@ def check_classifier(classifier_name, classifier, datasets):
                   test_data, test_labels)
     
 def subset_select(which_learner, datasets):
+    """
+    Uses recursive feature elimination to select the best features.
+    """
     # Split dataset into components
     (train_data, train_labels, test_data, test_labels) = datasets
     
@@ -130,12 +146,12 @@ def subset_select(which_learner, datasets):
     else:
         return
     
-    #feature_selector = feature_selection.RFECV(classifier)
-    #feature_selector.fit(train_data, train_labels)
-    #print(feature_selector.get_support())
+    feature_selector = feature_selection.RFECV(classifier)
+    feature_selector.fit(train_data, train_labels)
+    print(feature_selector.get_support())
     
-    #check_classifier(which_learner + " with selection", feature_selector,
-    #                 datasets)
+    check_classifier(which_learner + " with selection", feature_selector,
+                     datasets)
     
     
     
@@ -150,13 +166,17 @@ def main():
     datasets = split_data(train_filename, test_filename)
     (train_data, train_labels, test_data, test_labels) = datasets
     
-    # knn_classifier = knn_learner(train_data, train_labels, [5])
-    #check_classifier("KNN", knn_classifier[0], datasets)
+    knn_values = range(1, 15)
+    knn_classifier = knn_learner(train_data, train_labels, knn_values, datasets)
+    knr_classifier = knn_regress_learner(train_data, train_labels, knn_values, datasets)
+    for i in range(len(knn_values)):
+        check_classifier("KNN", knn_classifier[i], datasets)
+        check_classifier("KNR", knr_classifier[i], datasets)
     
     #linear_classifier = linear_learner(train_data, train_labels)
     #check_classifier("Linear", linear_classifier, datasets)
     
-    subset_select("Linear", datasets)
+    #subset_select("Linear", datasets)
     
     
 
