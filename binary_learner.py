@@ -7,10 +7,11 @@ from sklearn import linear_model # linear regression learning
 from sklearn import neighbors # k-nearest neighbors
 from sklearn import feature_selection # Recursive feature elimination
 import numpy # processing
+from scipy import stats # thresholding
 import random # for splitting data in training/test
 
 
-def split_data(train_filename, test_filename):
+def split_data(train_filename, test_filename, keep_elections=False):
     """
     If there is no separate train/test file, test_filename has length 0.
     
@@ -38,17 +39,47 @@ def split_data(train_filename, test_filename):
         test_rows = 0
         
         # Randomly select training and testing data from file(s)
-        for i in range(rows):
-            if random.random() > 0.7:
-                test_data = numpy.append(test_data, all_data[i,:(columns-1)])
-                test_data_labels = numpy.append(test_data_labels,
-                                                all_data[i,columns-1])
-                test_rows += 1
-            else:
-                train_data = numpy.append(train_data, all_data[i,0:(columns-1)])
-                train_data_labels = numpy.append(train_data_labels,
-                                                 all_data[i,columns-1])
-                train_rows += 1
+        if keep_elections:
+            #Split the data so that each election is maintained in a data set
+            cur_row = 0
+            while cur_row < rows:
+                if random.random() > 0.7:
+                    at_first = True
+                    while (cur_row < rows) and (at_first or \
+                                             all_data[cur_row, columns-1] == 0):
+                        test_data = numpy.append(test_data,
+                                                all_data[cur_row,:(columns-1)])
+                        test_data_labels = numpy.append(test_data_labels,
+                                                        all_data[cur_row,
+                                                                 columns-1])
+                        at_first = False
+                        test_rows += 1
+                        cur_row += 1
+                else:
+                    at_first = True
+                    while (cur_row < rows) and (at_first or \
+                                             all_data[cur_row, columns-1] == 0):
+                        train_data = numpy.append(train_data,
+                                                all_data[cur_row,:(columns-1)])
+                        train_data_labels = numpy.append(train_data_labels,
+                                                        all_data[cur_row,
+                                                                 columns-1])
+                        at_first = False
+                        train_rows += 1
+                        cur_row += 1
+        
+        else:
+            for i in range(rows):
+                if random.random() > 0.7:
+                    test_data = numpy.append(test_data, all_data[i,:(columns-1)])
+                    test_data_labels = numpy.append(test_data_labels,
+                                                    all_data[i,columns-1])
+                    test_rows += 1
+                else:
+                    train_data = numpy.append(train_data, all_data[i,0:(columns-1)])
+                    train_data_labels = numpy.append(train_data_labels,
+                                                    all_data[i,columns-1])
+                    train_rows += 1
         
         test_data = test_data.reshape((test_rows, columns-1))
         train_data = train_data.reshape((train_rows, columns-1))
@@ -106,6 +137,26 @@ def knn_learner(train_data, train_labels, k_vals, datasets):
     
     return kneighbors_classifiers
 
+def threshold_values(vector):
+    """
+    Returns a new vector with all values < 0.5 set to 0, and all values >= 0.5
+    set to 1.
+    """
+    tmp_vec = stats.threshold(vector, None, 0.5, 1)
+    tmp_vec = stats.threshold(tmp_vec, 0.5, None, 0)
+    return tmp_vec
+    
+def songs_correct_percent(classifier, test_data, test_labels,
+                          should_threshold=False):
+    predict = classifier.predict(test_data)
+    if(should_threshold):
+        predict = threshold_values(predict)
+    num_total_points = len(predict)
+    num_wrong = count_differences(predict, test_labels)
+    percent_right = 100*(num_total_points - num_wrong)/num_total_points
+    
+    return (num_total_points, num_wrong, percent_right)
+
 def count_differences(vec1, vec2):
     """
     Finds the total number of elements at which vector 1 differs from vector 2.
@@ -114,9 +165,8 @@ def count_differences(vec1, vec2):
     return numpy.linalg.norm(numpy.absolute(diff_vec), 1)
 
 def check_dataset(classifier_name, classifier, data_name, data, labels):
-    predict = classifier.predict(data)
-    num_total_points = len(predict)
-    num_wrong = count_differences(predict, labels)
+    (num_total_points, num_wrong, percent_right) = \
+        songs_correct_percent(classifier, data, labels, True)
     print(classifier_name + ": On " + data_name + " data, a total of "
           + str(num_wrong) + " points were predicted wrong of "
           + str(num_total_points) + ".")
@@ -151,7 +201,7 @@ def subset_select(which_learner, datasets):
     print(feature_selector.get_support())
     
     check_classifier(which_learner + " with selection", feature_selector,
-                     datasets)
+                     datasets, True)
     
     
     
@@ -163,7 +213,7 @@ def main():
     train_filename = sys.argv[1]
     test_filename = sys.argv[2] if len(sys.argv) == 3 else ''
     
-    datasets = split_data(train_filename, test_filename)
+    datasets = split_data(train_filename, test_filename, True)
     (train_data, train_labels, test_data, test_labels) = datasets
     
     knn_values = range(1, 15)
