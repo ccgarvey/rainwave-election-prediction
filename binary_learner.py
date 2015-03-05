@@ -6,6 +6,8 @@ import sys #for command-line arguments
 from sklearn import linear_model # linear regression learning
 from sklearn import neighbors # k-nearest neighbors
 from sklearn import feature_selection # Recursive feature elimination
+from sklearn.decomposition import PCA # Principal component analysis
+from sklearn import preprocessing # mean 0 variance 1
 import numpy # processing
 from scipy import stats # thresholding
 import random # for splitting data in training/test
@@ -193,6 +195,8 @@ def check_dataset(classifier_name, classifier, data_name, data, labels):
     (num_total_points, num_wrong, percent_right) = \
         elections_correct_percent(classifier, data, labels)
         #songs_correct_percent(classifier, data, labels, True)
+        
+        
     print(classifier_name + ": On " + data_name + " data, a total of "
           + str(num_wrong) + " points were predicted wrong of "
           + str(num_total_points) + ".")
@@ -205,7 +209,7 @@ def check_classifier(classifier_name, classifier, datasets):
     #              train_data, train_labels)
     
     check_dataset(classifier_name, classifier, "testing",
-                  test_data, test_labels)
+                  preprocessing.scale(test_data), test_labels)
     
 def subset_select(which_learner, datasets):
     """
@@ -229,7 +233,15 @@ def subset_select(which_learner, datasets):
     check_classifier(which_learner + " with selection", feature_selector,
                      datasets, True)
     
-    
+def doPCA(data, other_data):
+    scaled = preprocessing.scale(data)
+    #analyzer = PCA()
+    analyzer = PCA(n_components=5)
+    analyzer.fit(scaled)
+    print(analyzer.components_)
+    print(analyzer.explained_variance_ratio_)
+    #print(analyzer.get_covariance())
+    return analyzer.transform(data), analyzer.transform(other_data)
     
 def main():
     if len(sys.argv) != 2 and len(sys.argv) != 3:
@@ -241,14 +253,18 @@ def main():
     
     datasets = split_data(train_filename, test_filename, True)
     (train_data, train_labels, test_data, test_labels) = datasets
+    train_data, test_data = doPCA(train_data, test_data)
+    datasets = (train_data, train_labels, test_data, test_labels)
     
+    
+    #doPCA(train_data)
     #knn_values = range(1, 15)
     knn_values = [10]
-    knn_classifier = knn_learner(train_data, train_labels, knn_values, datasets)
+    knn_classifier = knn_learner(preprocessing.scale(train_data), train_labels, knn_values, datasets)
     #knr_classifier = knn_regress_learner(train_data, train_labels, knn_values, datasets)
     for i in range(len(knn_values)):
         check_classifier("KNN", knn_classifier[i], datasets)
-        #check_classifier("KNR", knr_classifier[i], datasets)
+    #    check_classifier("KNR", knr_classifier[i], datasets)
     
     linear_classifier = linear_learner(train_data, train_labels)
     check_classifier("Linear", linear_classifier, datasets)
