@@ -14,6 +14,7 @@ from scipy import stats # thresholding
 import random # for splitting data in training/test
 
 
+
 def split_data(train_filename, test_filename, keep_elections=False):
     """
     If there is no separate train/test file, test_filename has length 0.
@@ -118,9 +119,9 @@ def binary_tree_learner(train_data, train_labels):
     """
     Creates a binary tree learner based on the training data.
     """
-    bin_tree = tree.DecisionTreeClassifier(max_depth=3)
+    bin_tree = tree.DecisionTreeClassifier(max_depth=1)
     bin_tree.fit(train_data, train_labels)
-    print(bin_tree.feature_importances_)
+    #print(bin_tree.feature_importances_)
     
     return bin_tree 
     
@@ -159,9 +160,34 @@ def threshold_values(vector):
     tmp_vec = stats.threshold(tmp_vec, 0.5, None, 0)
     return tmp_vec
     
-def elections_correct_percent(classifier, data, labels):
-    predict = classifier.predict(data)
-    num_total_points = len(predict)
+def pick_best(values):
+    """
+    Selects the index in values that has the highest value. Returns it.
+    If there is more than one value that has the same value, returns a random
+    choice of those indices.
+    """
+    max_value = max(values)
+    count = 0
+    for i in values:
+        if i == max_value:
+            count += 1
+            
+    which_value = guess(count)
+    index = 0
+    for i in values:
+        if i == max_value:
+            if which_value == 0:
+                return index
+            else:
+                which_value -= 1
+        index += 1
+    return -1
+    
+
+def elections_correct_percent(classifier, data, labels, should_guess=False):
+    if not should_guess:
+        predict = classifier.predict(data)
+    num_total_points = len(labels)
     
     point = 0
     elections = 0
@@ -170,18 +196,25 @@ def elections_correct_percent(classifier, data, labels):
         # Check who the predicted winner of the election is
         at_first = True
         values = []
+        count = 0
         while (point < num_total_points) and (at_first or labels[point] == 0):
             at_first = False
-            values.append(predict[point])
+            if not should_guess:
+                values.append(predict[point])
+            else:
+                count += 1
             point += 1
         
-        # TODO this may count a tie wrong.
-        print(values)
+        # this may count a tie wrong; this is intentional.
+        #if not should_guess:
+        #    print(values)
         #print(labels[(point-3):(point):1])
-        
-        max_point = values.index(max(reversed(values)))
+        if not should_guess:
+            max_point = pick_best(values)
+        else:
+            max_point = guess(count)
         #max_point = (len(values) - values.index(max(reversed(values)))) - 1
-        print(max_point)
+        #print(max_point)
         if(labels[max_point] != 1):
             num_elections_wrong += 1
         elections += 1
@@ -208,9 +241,9 @@ def count_differences(vec1, vec2):
     diff_vec = vec1 - vec2
     return numpy.linalg.norm(numpy.absolute(diff_vec), 1)
 
-def check_dataset(classifier_name, classifier, data_name, data, labels):
+def check_dataset(classifier_name, classifier, data_name, data, labels, guess):
     (num_total_points, num_wrong, percent_right) = \
-        elections_correct_percent(classifier, data, labels)
+        elections_correct_percent(classifier, data, labels, guess)
         #songs_correct_percent(classifier, data, labels, True)
         
         
@@ -218,15 +251,15 @@ def check_dataset(classifier_name, classifier, data_name, data, labels):
           + str(num_wrong) + " points were predicted wrong of "
           + str(num_total_points) + ".")
     percent_right = 100*(num_total_points - num_wrong)/num_total_points
-    print(classifier_name + " This is an accuracy of " + str(percent_right) + "%")
+    print(classifier_name + ": This is an accuracy of " + str(percent_right) + "%")
 
-def check_classifier(classifier_name, classifier, datasets):
+def check_classifier(classifier_name, classifier, datasets, guess=False):
     (train_data, train_labels, test_data, test_labels) = datasets
     #check_dataset(classifier_name, classifier, "training",
     #              train_data, train_labels)
     
     check_dataset(classifier_name, classifier, "testing",
-                  preprocessing.scale(test_data), test_labels)
+                  preprocessing.scale(test_data), test_labels, guess)
     
 def subset_select(which_learner, datasets):
     """
@@ -260,6 +293,9 @@ def doPCA(data, other_data):
     #print(analyzer.get_covariance())
     return analyzer.transform(data), analyzer.transform(other_data)
     
+def guess(num_songs_in_election):
+    return random.randint(0, num_songs_in_election-1)
+    
 def main():
     if len(sys.argv) != 2 and len(sys.argv) != 3:
         print('Usage: python binary_learner <train_data> [test_data]')
@@ -273,24 +309,22 @@ def main():
     #train_data, test_data = doPCA(train_data, test_data)
     #datasets = (train_data, train_labels, test_data, test_labels)
     
-    
-    #doPCA(train_data)
     #knn_values = range(1, 15)
     knn_values = [10]
     knn_classifier = knn_learner(preprocessing.scale(train_data), train_labels, knn_values, datasets)
-    #knr_classifier = knn_regress_learner(train_data, train_labels, knn_values, datasets)
+    knr_classifier = knn_regress_learner(train_data, train_labels, knn_values, datasets)
     for i in range(len(knn_values)):
         check_classifier("KNN", knn_classifier[i], datasets)
-    #    check_classifier("KNR", knr_classifier[i], datasets)
+        check_classifier("KNR", knr_classifier[i], datasets)
     
-    #tree_classifier = binary_tree_learner(train_data, train_labels)
-    #check_classifier("Decision tree", tree_classifier, datasets)
+    tree_classifier = binary_tree_learner(train_data, train_labels)
+    check_classifier("Decision tree", tree_classifier, datasets)
     
-    #linear_classifier = linear_learner(train_data, train_labels)
-    #check_classifier("Linear", linear_classifier, datasets)
+    linear_classifier = linear_learner(train_data, train_labels)
+    check_classifier("Linear", linear_classifier, datasets)
     
     #subset_select("Linear", datasets)
     
-    
+    check_classifier("Guess", None, datasets, True)
 
 main()
