@@ -8,6 +8,7 @@ from sklearn import neighbors # k-nearest neighbors
 from sklearn import feature_selection # Recursive feature elimination
 from sklearn.decomposition import PCA # Principal component analysis
 from sklearn import preprocessing # mean 0 variance 1
+from sklearn import tree # binary decision tree
 import numpy # processing
 from scipy import stats # thresholding
 import random # for splitting data in training/test
@@ -105,17 +106,27 @@ def split_data(train_filename, test_filename, keep_elections=False):
 
 def linear_learner(train_data, train_labels):
     """
-    Performs linear regression on the testing data.
+    Performs linear regression on the training data.
     
     """
     linear = linear_model.LinearRegression()
     linear.fit(train_data, train_labels)
     
     return linear
+
+def binary_tree_learner(train_data, train_labels):
+    """
+    Creates a binary tree learner based on the training data.
+    """
+    bin_tree = tree.DecisionTreeClassifier(max_depth=3)
+    bin_tree.fit(train_data, train_labels)
+    print(bin_tree.feature_importances_)
+    
+    return bin_tree 
     
 def knn_regress_learner(train_data, train_labels, k_vals, datasets):
     """
-    Performs K-nearest neighbors on the test data.
+    Performs K-nearest neighbors on the training data.
     """
     kneighbors_classifiers = []
 
@@ -165,7 +176,12 @@ def elections_correct_percent(classifier, data, labels):
             point += 1
         
         # TODO this may count a tie wrong.
-        max_point = len(values) - values.index(max(reversed(values)))
+        print(values)
+        #print(labels[(point-3):(point):1])
+        
+        max_point = values.index(max(reversed(values)))
+        #max_point = (len(values) - values.index(max(reversed(values)))) - 1
+        print(max_point)
         if(labels[max_point] != 1):
             num_elections_wrong += 1
         elections += 1
@@ -173,8 +189,9 @@ def elections_correct_percent(classifier, data, labels):
     percent_right = 100*(elections - num_elections_wrong)/elections
     return (elections, num_elections_wrong, percent_right)
     
-def songs_correct_percent(classifier, test_data, test_labels,
-                          should_threshold=False):
+def songs_correct_percent(classifier, test_data, test_labels,  should_threshold=False):
+    """
+    """
     predict = classifier.predict(test_data)
     if(should_threshold):
         predict = threshold_values(predict)
@@ -238,8 +255,8 @@ def doPCA(data, other_data):
     #analyzer = PCA()
     analyzer = PCA(n_components=5)
     analyzer.fit(scaled)
-    print(analyzer.components_)
-    print(analyzer.explained_variance_ratio_)
+    #print(analyzer.components_)
+    #print(analyzer.explained_variance_ratio_)
     #print(analyzer.get_covariance())
     return analyzer.transform(data), analyzer.transform(other_data)
     
@@ -253,8 +270,8 @@ def main():
     
     datasets = split_data(train_filename, test_filename, True)
     (train_data, train_labels, test_data, test_labels) = datasets
-    train_data, test_data = doPCA(train_data, test_data)
-    datasets = (train_data, train_labels, test_data, test_labels)
+    #train_data, test_data = doPCA(train_data, test_data)
+    #datasets = (train_data, train_labels, test_data, test_labels)
     
     
     #doPCA(train_data)
@@ -266,8 +283,11 @@ def main():
         check_classifier("KNN", knn_classifier[i], datasets)
     #    check_classifier("KNR", knr_classifier[i], datasets)
     
-    linear_classifier = linear_learner(train_data, train_labels)
-    check_classifier("Linear", linear_classifier, datasets)
+    #tree_classifier = binary_tree_learner(train_data, train_labels)
+    #check_classifier("Decision tree", tree_classifier, datasets)
+    
+    #linear_classifier = linear_learner(train_data, train_labels)
+    #check_classifier("Linear", linear_classifier, datasets)
     
     #subset_select("Linear", datasets)
     
