@@ -119,7 +119,7 @@ def binary_tree_learner(train_data, train_labels):
     """
     Creates a binary tree learner based on the training data.
     """
-    bin_tree = tree.DecisionTreeClassifier(max_depth=1)
+    bin_tree = tree.DecisionTreeClassifier(max_depth=5)
     bin_tree.fit(train_data, train_labels)
     #print(bin_tree.feature_importances_)
     
@@ -138,7 +138,7 @@ def knn_regress_learner(train_data, train_labels, k_vals, datasets):
     
     return kneighbors_classifiers
 
-def knn_learner(train_data, train_labels, k_vals, datasets):
+def knn_learner(train_data, train_labels, k_vals, datasets=None):
     """
     Performs K-nearest neighbors regression on the test data.
     """
@@ -327,4 +327,89 @@ def main():
     
     check_classifier("Guess", None, datasets, True)
 
-main()
+def kfold_data(train_filename):
+    """
+    Splits the training data into five datasets, retaining elections between datasets.
+    """
+    train_file = open(train_filename, 'r')
+    categories = train_file.readline().replace(',', '').split()
+    
+    # Split training and testing data.
+    all_data = numpy.loadtxt(train_file, delimiter=', ')
+    rows, columns = all_data.shape
+    train_data = []
+    train_data_labels = []
+    train_rows = []
+    test_data = []
+    test_data_labels = []
+    test_rows = []
+    for i in range(5):
+        train_data.append(numpy.zeros([0, columns]))
+        train_data_labels.append(numpy.zeros([0, 1]))
+        train_rows.append(0)
+        test_data.append(numpy.zeros([0, columns]))
+        test_data_labels.append(numpy.zeros([0, 1]))
+        test_rows.append(0)
+    
+    #Split the data so that each election is maintained in a data set
+    cur_row = 0
+    while cur_row < rows:
+        index = random.randint(0, 4)
+        at_first = True
+        while (cur_row < rows) and (at_first or \
+                                    all_data[cur_row, columns-1] == 0):
+            test_data[index] = numpy.append(test_data[index],
+                                    all_data[cur_row,:(columns-1)])
+            test_data_labels[index] = numpy.append(test_data_labels[index],
+                                            all_data[cur_row, columns-1])
+            test_rows[index] += 1
+            
+            for i in range(5):
+                if(i != index):
+                    train_data[i] = numpy.append(train_data[i],
+                                        all_data[cur_row, :(columns-1)])
+                    train_data_labels[i] = numpy.append(train_data_labels[i],
+                                            all_data[cur_row, columns-1])
+                    train_rows[i] += 1
+            at_first = False
+            
+            cur_row += 1
+    
+    for i in range(4):
+        test_data[i] = test_data[i].reshape((test_rows[i], columns-1))
+        train_data[i] = train_data[i].reshape((train_rows[i], columns-1))
+        
+    return train_data, train_data_labels, test_data, test_data_labels
+    
+def validate():
+    if len(sys.argv) != 2 and len(sys.argv) != 3:
+        print('Usage: python binary_learner <train_data> [test_data]')
+        return
+
+    train_filename = sys.argv[1]
+    test_filename = sys.argv[2] if len(sys.argv) == 3 else ''
+    
+    total_correct = 0
+    count = 0
+    #name = "Linear"
+    #name = "Guess"
+    #name = "Binary"
+    name = "KNN"
+    #name = "KNR"
+    for i in range(200):
+        datasets = kfold_data(train_filename)
+        (train_data, train_labels, test_data, test_labels) = datasets
+        for j in range(len(datasets)):
+            #classifier = linear_learner(train_data[j], train_labels[j])
+            #classifier = binary_tree_learner(train_data[j], train_labels[j])
+            classifier = knn_learner(train_data[j], train_labels[j], [10])[0]
+            #classifier = None
+            #classifier = knn_regress_learner(train_data[j], train_labels[j],
+            #                                 [10], None)[0]
+            total_correct += elections_correct_percent(classifier, test_data[j],
+                                                  test_labels[j])[2]
+            count += 1
+    
+    print(name + " accuracy is " + str((total_correct/count)) + "%.")
+    
+validate()
