@@ -171,4 +171,5 @@ def main():
     output_file.close()
     json_data_file.close()
 
-restricted_parsing()
+#restricted_parsing()
+main()

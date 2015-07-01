@@ -383,33 +383,56 @@ def kfold_data(train_filename):
     
 def validate():
     if len(sys.argv) != 2 and len(sys.argv) != 3:
-        print('Usage: python binary_learner <train_data> [test_data]')
+        print('Usage: python binary_learner <train_data>')
         return
 
     train_filename = sys.argv[1]
-    test_filename = sys.argv[2] if len(sys.argv) == 3 else ''
     
-    total_correct = 0
-    count = 0
-    #name = "Linear"
-    #name = "Guess"
-    #name = "Binary"
-    name = "KNN"
-    #name = "KNR"
-    for i in range(200):
-        datasets = kfold_data(train_filename)
-        (train_data, train_labels, test_data, test_labels) = datasets
-        for j in range(len(datasets)):
-            #classifier = linear_learner(train_data[j], train_labels[j])
-            #classifier = binary_tree_learner(train_data[j], train_labels[j])
-            classifier = knn_learner(train_data[j], train_labels[j], [10])[0]
-            #classifier = None
-            #classifier = knn_regress_learner(train_data[j], train_labels[j],
-            #                                 [10], None)[0]
-            total_correct += elections_correct_percent(classifier, test_data[j],
-                                                  test_labels[j])[2]
-            count += 1
+    names = ['Guess', 'Linear', 'Binary decision tree', 'KNN', 'KNN regression']
+    choice = 0
     
-    print(name + " accuracy is " + str((total_correct/count)) + "%.")
+    while(choice != 6):
+        print('Select a learner:\n1 - Guess\n2 - Linear\n'+
+            '3 - Binary Decision Tree\n4 - K-nearest neigbors\n'+
+            '5 - K-nearest neighbor regression\n6 - Quit')
+        choice = int(input('Your choice (a number): '))
+        if(choice < 1 or choice > 5):
+            continue
+        
+        print(names[choice-1] + ': Running validation; this make take time.')
+        total_correct = 0
+        count = 0
+        for i in range(200):
+            datasets = kfold_data(train_filename)
+            (train_data, train_labels, test_data, test_labels) = datasets
+            for j in range(len(datasets)):
+                if choice == 1:
+                    classifier = None
+                elif choice == 2:
+                    classifier = linear_learner(train_data[j], train_labels[j])
+                elif choice == 3:
+                    classifier = binary_tree_learner(train_data[j], train_labels[j])
+                elif choice == 4:
+                    classifier = knn_learner(train_data[j], train_labels[j], [10])[0]
+                elif choice == 5:
+                    classifier = knn_regress_learner(train_data[j], train_labels[j],
+                                                [10], None)[0]
+                else:
+                    print('Something went very wrong. Exiting.')
+                    return
+                
+                if choice == 2 or choice == 3:
+                    total_correct += elections_correct_percent(classifier,
+                                                test_data[j], test_labels[j])[2]
+                elif choice == 4 or choice == 5:
+                    total_correct += elections_correct_percent(classifier,
+                                                test_data[j], test_labels[j])[2]
+                elif choice == 1:
+                    total_correct += elections_correct_percent(classifier,
+                                                test_data[j], test_labels[j], True)[2]
+                count += 1
+        
+        print(names[choice-1] + " accuracy is " + str((total_correct/count))
+              + "%.")
     
 validate()
