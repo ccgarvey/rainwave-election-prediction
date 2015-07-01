@@ -20,7 +20,7 @@ def main():
     station = sys.argv[3]
     
     # General constant values
-    sid_dict = { 'OCR' : 2 , 'ALL' : 5 }
+    sid_dict = { 'GAME' : 1, 'OCR' : 2, 'COVERS' : 3, 'CHIP' : 4, 'ALL' : 5}
     station_dict = dict(reversed(i) for i in sid_dict.items())
     
     # Station selection

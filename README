@@ -1,0 +1,45 @@
+The Rainwave Election Prediction project contains code to collect election data from Rainwave, a free internet radio website, and use that data to predict winners of future elections.
+
+*****
+    What is Rainwave?
+
+Rainwave, found at rainwave.cc, is an internet radio website focusing primarily on video game and video-game inspired music. In order to be able to run these scripts, you will need an account on Rainwave. 
+
+During normal circumstances, both anonymous and registered users vote on what music will be played on the site in elections. Elections consist of three songs, and the song with the most votes wins the election and is played. Ties are broken randomly. There are many exceptions to these "normal" circumstances, including requested songs and special scheduled events. If you would like information about the details of how elections work, check out the "Welcome to Rainwave / Rules" thread found at http://rainwave.cc/forums/viewtopic.php?f=3&t=3 .
+
+*****
+    Data Collection
+
+Data can be collected for any of the five channels of Rainwave, based on their station ID. The station IDs are as follows:
+  1: Game
+  2: OC Remix
+  3: Covers
+  4: Chiptune
+  5: All
+
+To run data collection: 
+
+1. Visit rainwave.cc and log in.
+2. Go to http://rainwave.cc/keys/ and create an API key if you do not already have one. You will need the API key and your user ID.
+3. Run the data collection using your using your favorite alias for python 3 as follows:
+    python collect_data USER_ID API_KEY STATION_NUMBER
+
+The script will create a file based on the station and date. All data for that date will be concatenated on the end of the file as long as the script is running. If the date changes, the script will create a new file for the new date, and continue collecting data.
+
+*****
+    Data Parsing
+
+There is much more data collected than is used for election prediction. Additionally, it is in a format that is not conducive to training learners with. The data parser takes the data that was collected, and parses it down to what is needed to train the learners.
+
+There are currently two types of parsing possible: restricted and general parsing. Restricted parsing restricts the dataset to only two variables, whereas general parsing yields eleven variables. To toggle between them, you currently need to edit the file parse_data_restricted.py to toggle the commenting on the last two lines of code.
+
+To run data parsing, use your favorite alias for python 3 like follows:
+    python RAW_DATA_FILENAME OUTPUT_DATA_FILENAME
+
+*****
+    Election Prediction
+
+Election prediction currently consists of validating various prediction methods. To run validation, use your favorite alias for python 3 like follows:
+    python binary_learner TRAINING_FILE
+
+You will be presented with a menu for using a guessing, linear, binary decision tree, KNN, or KNN regression learner. Validation takes some time, as it is run many times to produce an accurate result.
