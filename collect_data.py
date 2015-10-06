@@ -75,6 +75,7 @@ def main():
             
         # Attempt HTTP requests.
         try:
+            data = ''
             # Retrieve listeners information (it's not given in sync)
             listener_response = postListeners(my_id, my_key, sid)
             listeners = json.loads(listener_response.read().decode('utf-8'))
@@ -140,7 +141,7 @@ def main():
         
         # If either fails, log the error, and wait for 60 seconds.
         except urllib.error.URLError as error:
-            logExceptionAndWait(log_file, error.reason, 60)
+            logExceptionAndWait(log_file, str(error), 60)
             continue
         
         except Exception as error:
