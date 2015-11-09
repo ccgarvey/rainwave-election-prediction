@@ -34,7 +34,7 @@ There is much more data collected than is used for election prediction. Addition
 There are currently two types of parsing possible: restricted and general parsing. Restricted parsing restricts the dataset to only two variables, whereas general parsing yields eleven variables. To toggle between them, you currently need to edit the file parse_data_restricted.py to toggle the commenting on the last two lines of code.
 
 To run data parsing, use your favorite alias for python 3 like follows:
-    python RAW_DATA_FILENAME OUTPUT_DATA_FILENAME
+    python parse_data_restricted.py RAW_DATA_FILENAME OUTPUT_DATA_FILENAME
 
 *****
     Election Prediction
