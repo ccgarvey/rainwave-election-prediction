@@ -295,7 +295,7 @@ def checkTied(election):
     
     # Single-song elections can't tie.
     if len(songs) <= 1:
-        return false
+        return False, 0
     
     # Election is only tied if the top two songs have the same number of votes.
     n_tied = 1
@@ -339,7 +339,12 @@ def requestInfo(song):
     return:       True iff. the song was requested, False otherwise
     return:       the name of the requester, or None if there was no request
     '''
-    name = song['elec_request_username']
+    
+    try:
+        name = song['elec_request_username']
+    except KeyError:
+        return False, None
+    
     if name == None:
         return False, None
     else:
