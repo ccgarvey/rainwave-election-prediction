@@ -434,5 +434,6 @@ def validate():
         
         print(names[choice-1] + " accuracy is " + str((total_correct/count))
               + "%.")
-    
-validate()
+
+if __name__ == '__main__':    
+    validate()
