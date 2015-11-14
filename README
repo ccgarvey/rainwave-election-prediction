@@ -36,6 +36,9 @@ There are currently two types of parsing possible: restricted and general parsin
 To run data parsing, use your favorite alias for python 3 like follows:
     python parse_data_restricted.py RAW_DATA_FILENAME OUTPUT_DATA_FILENAME
 
+Alternatively, if there are many files to parse in the same directory and you have bash accessible on a Linux system, you can run the parsing script as follows:
+    ./parse_station_data INPUT_PATH STATION_NAME OUT_FILE_PATH_NAME
+
 *****
     Election Prediction
 
