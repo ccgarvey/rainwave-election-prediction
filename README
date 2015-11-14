@@ -5,7 +5,7 @@ The Rainwave Election Prediction project contains code to collect election data 
 
 Rainwave, found at http://rainwave.cc, is an internet radio website focusing primarily on video game and video-game inspired music. In order to be able to run these scripts, you will need an account on Rainwave. 
 
-During normal circumstances, both anonymous and registered users vote on what music will be played on the site in elections. Elections consist of three songs, and the song with the most votes wins the election and is played. Ties are broken randomly. There are many exceptions to these "normal" circumstances, including requested songs and special scheduled events. If you would like information about the details of how elections work, check out the "Welcome to Rainwave / Rules" thread found at http://rainwave.cc/forums/viewtopic.php?f=36&t=1600 . Note that this is out of date (Rainwave is at version 4, but this details version 3), so the topic is liable to disappear.
+During normal circumstances, both anonymous and registered users vote on what music will be played on the site in elections. Elections consist of three songs, and the song with the most votes wins the election and is played. Ties are broken randomly. There are many exceptions to these "normal" circumstances, including requested songs and special scheduled events. During some special events, two songs are in each election and, in others, there is one song and no voting. Additionally, users can request songs to play, and ties are broken in favor of the requested song.
 
 *****
     Data Collection
